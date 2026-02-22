@@ -30,7 +30,7 @@ export default function App() {
   const [discardPile, setDiscardPile] = useState<Card[]>([]);
   const [currentSuit, setCurrentSuit] = useState<Suit | null>(null);
   const [turn, setTurn] = useState<'player' | 'ai'>('player');
-  const [gameStatus, setGameStatus] = useState<'playing' | 'won' | 'lost'>('playing');
+  const [gameStatus, setGameStatus] = useState<'start' | 'playing' | 'won' | 'lost'>('start');
   const [showSuitPicker, setShowSuitPicker] = useState(false);
   const [pendingAceCard, setPendingAceCard] = useState<Card | null>(null);
   const [message, setMessage] = useState<string>("Welcome to Crazy Ace!");
@@ -57,13 +57,18 @@ export default function App() {
     setIsAiThinking(false);
   }, []);
 
-  useEffect(() => {
+  const startGame = () => {
     initGame();
-  }, [initGame]);
+  };
+
+  useEffect(() => {
+    // Don't auto-init anymore, wait for start button
+  }, []);
 
   const topDiscard = useMemo(() => discardPile[discardPile.length - 1], [discardPile]);
 
   const canPlay = (card: Card) => {
+    if (!topDiscard) return false;
     if (card.rank === 'A') return true;
     return card.suit === currentSuit || card.rank === topDiscard.rank;
   };
@@ -214,6 +219,54 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#1a1a1a] text-zinc-100 font-sans selection:bg-emerald-500/30 overflow-hidden flex flex-col">
+      {/* Start Screen */}
+      <AnimatePresence>
+        {gameStatus === 'start' && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-[#1a1a1a] p-4"
+          >
+            <motion.div
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.2 }}
+              className="text-center"
+            >
+              <div className="w-24 h-24 md:w-32 md:h-32 bg-emerald-500 rounded-3xl flex items-center justify-center shadow-2xl shadow-emerald-500/20 mx-auto mb-8">
+                <Trophy className="text-white w-12 h-12 md:w-16 md:h-16" />
+              </div>
+              <h1 className="text-5xl md:text-7xl font-black tracking-tighter mb-4 bg-gradient-to-b from-white to-white/50 bg-clip-text text-transparent italic">
+                CRAZY ACE
+              </h1>
+              <p className="text-zinc-400 text-lg md:text-xl mb-12 max-w-md mx-auto">
+                A strategic twist on Crazy Eights. Remember: the first to empty their hand <span className="text-emerald-400 font-bold">LOSES</span>!
+              </p>
+              
+              <button
+                onClick={startGame}
+                className="group relative px-12 py-5 bg-white text-zinc-900 font-bold text-xl rounded-2xl transition-all hover:scale-105 active:scale-95 shadow-xl hover:shadow-white/10"
+              >
+                <span className="relative z-10 flex items-center gap-3">
+                  Click to Start
+                  <motion.div
+                    animate={{ x: [0, 5, 0] }}
+                    transition={{ repeat: Infinity, duration: 1.5 }}
+                  >
+                    →
+                  </motion.div>
+                </span>
+              </button>
+            </motion.div>
+
+            {/* Background elements */}
+            <div className="absolute top-1/4 -left-20 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl" />
+            <div className="absolute bottom-1/4 -right-20 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl" />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Header */}
       <header className="p-4 border-b border-white/10 flex justify-between items-center bg-black/20 backdrop-blur-md z-10">
         <div className="flex items-center gap-3">
@@ -281,27 +334,29 @@ export default function App() {
           {/* Discard Pile */}
           <div className="relative">
             <AnimatePresence mode="popLayout">
-              <motion.div
-                key={topDiscard.id}
-                initial={{ scale: 0.8, opacity: 0, rotate: -10 }}
-                animate={{ scale: 1, opacity: 1, rotate: 0 }}
-                className="w-24 h-36 md:w-32 md:h-48 bg-white rounded-xl border-4 border-white/20 shadow-2xl flex flex-col p-3 text-zinc-900 relative"
-              >
-                <div className={`text-xl md:text-2xl font-bold leading-none ${CARD_COLORS[topDiscard.suit]}`}>
-                  {topDiscard.rank}
-                </div>
-                <div className={`w-4 h-4 md:w-6 md:h-6 ${CARD_COLORS[topDiscard.suit]}`}>
-                  {SUIT_ICONS[topDiscard.suit]}
-                </div>
-                
-                <div className="absolute inset-0 flex items-center justify-center opacity-10 p-6">
-                  {SUIT_ICONS[topDiscard.suit]}
-                </div>
+              {topDiscard && (
+                <motion.div
+                  key={topDiscard.id}
+                  initial={{ scale: 0.8, opacity: 0, rotate: -10 }}
+                  animate={{ scale: 1, opacity: 1, rotate: 0 }}
+                  className="w-24 h-36 md:w-32 md:h-48 bg-white rounded-xl border-4 border-white/20 shadow-2xl flex flex-col p-3 text-zinc-900 relative"
+                >
+                  <div className={`text-xl md:text-2xl font-bold leading-none ${CARD_COLORS[topDiscard.suit]}`}>
+                    {topDiscard.rank}
+                  </div>
+                  <div className={`w-4 h-4 md:w-6 md:h-6 ${CARD_COLORS[topDiscard.suit]}`}>
+                    {SUIT_ICONS[topDiscard.suit]}
+                  </div>
+                  
+                  <div className="absolute inset-0 flex items-center justify-center opacity-10 p-6">
+                    {SUIT_ICONS[topDiscard.suit]}
+                  </div>
 
-                <div className={`absolute bottom-3 right-3 text-xl md:text-2xl font-bold leading-none rotate-180 ${CARD_COLORS[topDiscard.suit]}`}>
-                  {topDiscard.rank}
-                </div>
-              </motion.div>
+                  <div className={`absolute bottom-3 right-3 text-xl md:text-2xl font-bold leading-none rotate-180 ${CARD_COLORS[topDiscard.suit]}`}>
+                    {topDiscard.rank}
+                  </div>
+                </motion.div>
+              )}
             </AnimatePresence>
             
             {/* Current Suit Indicator (for Aces) */}
